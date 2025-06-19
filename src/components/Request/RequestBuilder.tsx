@@ -14,6 +14,7 @@ import {
 import { useApp } from "../../contexts/AppContext";
 import { requestService } from "../../services/request";
 import { HttpRequest, RequestResponse } from "../../types";
+import { FormDataEditor } from "./FormDataEditor";
 
 interface KeyValuePair {
   key: string;
@@ -655,7 +656,14 @@ export function RequestBuilder() {
                   ))}
                 </div>
 
-                {request.bodyType !== "none" && (
+                {request.bodyType === "form" && (
+                  <FormDataEditor
+                    value={request.body}
+                    onChange={(value) => updateRequestData({ body: value })}
+                  />
+                )}
+
+                {request.bodyType !== "none" && request.bodyType !== "form" && (
                   <textarea
                     value={request.body}
                     onChange={(e) =>

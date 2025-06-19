@@ -40,7 +40,7 @@ class RequestService {
 
       // Replace environment variables in URL and body
       const url = this.replaceVariables(request.url, mergedVariables);
-      const body = this.replaceVariables(request.body, mergedVariables);
+      let body = this.replaceVariables(request.body, mergedVariables);
       
       // Prepare headers
       const headers: Record<string, string> = { ...request.headers };
@@ -50,8 +50,36 @@ class RequestService {
         headers[key] = this.replaceVariables(headers[key], mergedVariables);
       });
       
-      // Set content type based on body type
-      if (request.bodyType === 'json' && body) {
+      // Handle form data
+      let formData: FormData | undefined;
+      if (request.bodyType === 'form' && body) {
+        try {
+          const formFields = JSON.parse(body);
+          if (Array.isArray(formFields)) {
+            formData = new FormData();
+            
+            formFields.forEach((field: any) => {
+              if (field.enabled && field.key) {
+                if (field.type === 'file' && field.file) {
+                  // In a real implementation, we'd need to handle file uploads differently
+                  // For now, we'll just add the filename as a placeholder
+                  formData!.append(field.key, field.fileName || 'file');
+                } else {
+                  formData!.append(field.key, field.value || '');
+                }
+              }
+            });
+            
+            // Don't set Content-Type for FormData - browser will set it with boundary
+            delete headers['Content-Type'];
+            body = ''; // Clear body since we're using FormData
+          }
+        } catch (error) {
+          console.warn('Error parsing form data:', error);
+          // Fall back to URL encoded
+          headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        }
+      } else if (request.bodyType === 'json' && body) {
         headers['Content-Type'] = 'application/json';
       } else if (request.bodyType === 'form' && body) {
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -64,16 +92,20 @@ class RequestService {
       };
 
       // Add body if not GET/HEAD
-      if (request.method !== 'GET' && request.method !== 'HEAD' && body) {
-        if (request.bodyType === 'json') {
-          try {
-            JSON.parse(body); // Validate JSON
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        if (formData) {
+          options.body = formData;
+        } else if (body) {
+          if (request.bodyType === 'json') {
+            try {
+              JSON.parse(body); // Validate JSON
+              options.body = body;
+            } catch {
+              throw new Error('Invalid JSON body');
+            }
+          } else {
             options.body = body;
-          } catch {
-            throw new Error('Invalid JSON body');
           }
-        } else {
-          options.body = body;
         }
       }
 
