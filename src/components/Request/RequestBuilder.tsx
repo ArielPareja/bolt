@@ -645,7 +645,11 @@ export function RequestBuilder() {
                         value={type}
                         checked={request.bodyType === type}
                         onChange={(e) =>
-                          updateRequestData({ bodyType: e.target.value as any })
+                          updateRequestData({ 
+                            bodyType: e.target.value as any,
+                            // Clear body when switching types to avoid confusion
+                            body: e.target.value === 'none' ? '' : request.body
+                          })
                         }
                         className="text-cyan-400"
                       />

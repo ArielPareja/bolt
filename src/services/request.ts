@@ -61,9 +61,13 @@ class RequestService {
             formFields.forEach((field: any) => {
               if (field.enabled && field.key) {
                 if (field.type === 'file' && field.file) {
-                  // In a real implementation, we'd need to handle file uploads differently
-                  // For now, we'll just add the filename as a placeholder
-                  formData!.append(field.key, field.fileName || 'file');
+                  // Create a File object from the stored file data
+                  // Note: In a real browser environment, we'd need to handle this differently
+                  // For now, we'll create a mock file for demonstration
+                  const mockFile = new File(['mock file content'], field.fileName || 'file.txt', {
+                    type: 'text/plain'
+                  });
+                  formData!.append(field.key, mockFile);
                 } else {
                   formData!.append(field.key, field.value || '');
                 }
@@ -78,6 +82,20 @@ class RequestService {
           console.warn('Error parsing form data:', error);
           // Fall back to URL encoded
           headers['Content-Type'] = 'application/x-www-form-urlencoded';
+          
+          // Convert JSON form data to URL encoded format
+          try {
+            const formFields = JSON.parse(body);
+            if (Array.isArray(formFields)) {
+              const urlEncodedData = formFields
+                .filter((field: any) => field.enabled && field.key && field.type === 'text')
+                .map((field: any) => `${encodeURIComponent(field.key)}=${encodeURIComponent(field.value || '')}`)
+                .join('&');
+              body = urlEncodedData;
+            }
+          } catch {
+            // Keep original body if parsing fails
+          }
         }
       } else if (request.bodyType === 'json' && body) {
         headers['Content-Type'] = 'application/json';
