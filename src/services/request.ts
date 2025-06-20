@@ -58,17 +58,30 @@ class RequestService {
           if (Array.isArray(formFields)) {
             formData = new FormData();
             
-            formFields.forEach((field: any) => {
+            // Get stored files from global variable
+            const storedFiles = (window as any).__formDataFiles || {};
+            
+            formFields.forEach((field: any, index: number) => {
               if (field.enabled && field.key) {
-                if (field.type === 'file' && field.file) {
-                  // Create a File object from the stored file data
-                  // Note: In a real browser environment, we'd need to handle this differently
-                  // For now, we'll create a mock file for demonstration
-                  const mockFile = new File(['mock file content'], field.fileName || 'file.txt', {
-                    type: 'text/plain'
-                  });
-                  formData!.append(field.key, mockFile);
+                if (field.type === 'file') {
+                  // Try to get the real file from storage
+                  const fileKey = `${field.key}_${index}`;
+                  const realFile = storedFiles[fileKey];
+                  
+                  if (realFile && realFile instanceof File) {
+                    // Use the real file
+                    formData!.append(field.key, realFile);
+                    console.log(`Added real file: ${realFile.name} (${realFile.size} bytes)`);
+                  } else if (field.fileName) {
+                    // Fallback: create a mock file with the stored filename
+                    const mockFile = new File(['[File content not available in demo]'], field.fileName, {
+                      type: field.fileType || 'application/octet-stream'
+                    });
+                    formData!.append(field.key, mockFile);
+                    console.log(`Added mock file: ${field.fileName}`);
+                  }
                 } else {
+                  // Text field
                   formData!.append(field.key, field.value || '');
                 }
               }
@@ -113,6 +126,16 @@ class RequestService {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         if (formData) {
           options.body = formData;
+          console.log('Using FormData for request body');
+          
+          // Log FormData contents for debugging
+          for (const [key, value] of formData.entries()) {
+            if (value instanceof File) {
+              console.log(`FormData field: ${key} = File(${value.name}, ${value.size} bytes, ${value.type})`);
+            } else {
+              console.log(`FormData field: ${key} = ${value}`);
+            }
+          }
         } else if (body) {
           if (request.bodyType === 'json') {
             try {
@@ -128,6 +151,13 @@ class RequestService {
       }
 
       // Execute request
+      console.log('Executing request:', {
+        method: request.method,
+        url,
+        headers: options.headers,
+        bodyType: formData ? 'FormData' : typeof options.body
+      });
+
       const response = await fetch(url, options);
       const endTime = Date.now();
       
@@ -194,6 +224,7 @@ class RequestService {
       return requestResponse;
     } catch (error) {
       const endTime = Date.now();
+      console.error('Request execution error:', error);
       throw {
         status: 0,
         statusText: 'Network Error',

@@ -26,7 +26,9 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
           setFields(parsed.map(field => ({
             ...field,
             type: field.type || 'text',
-            enabled: field.enabled !== false
+            enabled: field.enabled !== false,
+            // Don't try to restore file objects from JSON
+            file: undefined
           })));
           return;
         }
@@ -59,13 +61,16 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
   useEffect(() => {
     const formData = fields.filter(field => field.enabled && field.key.trim());
     
-    // For form data, we'll store as JSON to preserve file information
+    // For form data, we'll store as JSON but exclude the actual File objects
+    // since they can't be serialized
     const serializedData = formData.map(field => ({
       key: field.key,
       value: field.value,
       type: field.type,
       enabled: field.enabled,
-      fileName: field.file?.name
+      fileName: field.file?.name,
+      fileSize: field.file?.size,
+      fileType: field.file?.type
     }));
     
     onChange(JSON.stringify(serializedData));
@@ -104,6 +109,24 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
       });
     }
   };
+
+  // Store files globally so they can be accessed during request execution
+  const storeFilesGlobally = () => {
+    const fileMap: Record<string, File> = {};
+    fields.forEach((field, index) => {
+      if (field.type === 'file' && field.file && field.key) {
+        fileMap[`${field.key}_${index}`] = field.file;
+      }
+    });
+    
+    // Store in a global variable that can be accessed by the request service
+    (window as any).__formDataFiles = fileMap;
+  };
+
+  // Store files whenever fields change
+  useEffect(() => {
+    storeFilesGlobally();
+  }, [fields]);
 
   return (
     <div className="space-y-3">
@@ -166,7 +189,7 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
                     onChange={(e) => handleFileChange(index, e.target.files?.[0] || null)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm border-dashed">
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm border-dashed hover:border-cyan-400 transition-colors">
                     {field.file ? (
                       <>
                         <File size={16} className="text-cyan-400" />
@@ -204,6 +227,7 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
           <li>• Use "File" type to upload files (images, documents, etc.)</li>
           <li>• Files will be sent as multipart/form-data</li>
           <li>• Disable fields to exclude them from the request</li>
+          <li>• Selected files are stored temporarily for the request</li>
         </ul>
       </div>
     </div>
