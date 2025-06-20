@@ -63,18 +63,23 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
     
     // For form data, we'll store as JSON but exclude the actual File objects
     // since they can't be serialized
-    const serializedData = formData.map(field => ({
-      key: field.key,
-      value: field.value,
-      type: field.type,
-      enabled: field.enabled,
-      fileName: field.file?.name,
-      fileSize: field.file?.size,
-      fileType: field.file?.type
-    }));
+    const serializedData = formData.map((field) => {
+      if (field.file) {
+        return {
+          key: field.key,
+          value: field.value,
+          type: field.type,
+          enabled: field.enabled,
+          fileName: field.file?.name,
+          fileSize: field.file?.size,
+          fileType: field.file?.type,
+        };
+      }
+      return field;
+    });
     
     onChange(JSON.stringify(serializedData));
-  }, [fields, onChange]);
+  }, [fields]);
 
   const updateField = (index: number, updates: Partial<FormField>) => {
     const newFields = [...fields];
