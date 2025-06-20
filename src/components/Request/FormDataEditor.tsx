@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Upload, File, Type } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2, Upload, File, Type } from "lucide-react";
 
 interface FormField {
   key: string;
   value: string;
-  type: 'text' | 'file';
+  type: "text" | "file";
   enabled: boolean;
   file?: File;
 }
@@ -23,13 +23,16 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
       try {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) {
-          setFields(parsed.map(field => ({
-            ...field,
-            type: field.type || 'text',
-            enabled: field.enabled !== false,
-            // Don't try to restore file objects from JSON
-            file: undefined
-          })));
+          console.log("Parsed form data:", parsed);
+          setFields(
+            parsed.map((field) => ({
+              ...field,
+              type: field.type || "text",
+              enabled: field.enabled !== false,
+              // Don't try to restore file objects from JSON
+              //file: undefined
+            }))
+          );
           return;
         }
       } catch {
@@ -40,8 +43,8 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
           parsedFields.push({
             key,
             value: fieldValue,
-            type: 'text',
-            enabled: true
+            type: "text",
+            enabled: true,
           });
         });
         if (parsedFields.length > 0) {
@@ -50,17 +53,19 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
         }
       }
     }
-    
+
     // Default empty field
     if (fields.length === 0) {
-      setFields([{ key: '', value: '', type: 'text', enabled: true }]);
+      setFields([{ key: "", value: "", type: "text", enabled: true }]);
     }
   }, [value]);
 
   // Update parent component when fields change
   useEffect(() => {
-    const formData = fields.filter(field => field.enabled && field.key.trim());
-    
+    const formData = fields.filter(
+      (field) => field.enabled && field.key.trim()
+    );
+
     // For form data, we'll store as JSON but exclude the actual File objects
     // since they can't be serialized
     const serializedData = formData.map((field) => {
@@ -77,7 +82,6 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
       }
       return field;
     });
-    
     onChange(JSON.stringify(serializedData));
   }, [fields]);
 
@@ -88,13 +92,13 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
   };
 
   const addField = () => {
-    setFields([...fields, { key: '', value: '', type: 'text', enabled: true }]);
+    setFields([...fields, { key: "", value: "", type: "text", enabled: true }]);
   };
 
   const removeField = (index: number) => {
     const newFields = fields.filter((_, i) => i !== index);
     if (newFields.length === 0) {
-      newFields.push({ key: '', value: '', type: 'text', enabled: true });
+      newFields.push({ key: "", value: "", type: "text", enabled: true });
     }
     setFields(newFields);
   };
@@ -104,13 +108,13 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
       updateField(index, {
         file,
         value: file.name,
-        type: 'file'
+        type: "file",
       });
     } else {
       updateField(index, {
         file: undefined,
-        value: '',
-        type: 'text'
+        value: "",
+        type: "text",
       });
     }
   };
@@ -119,11 +123,11 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
   const storeFilesGlobally = () => {
     const fileMap: Record<string, File> = {};
     fields.forEach((field, index) => {
-      if (field.type === 'file' && field.file && field.key) {
+      if (field.type === "file" && field.file && field.key) {
         fileMap[`${field.key}_${index}`] = field.file;
       }
     });
-    
+
     // Store in a global variable that can be accessed by the request service
     (window as any).__formDataFiles = fileMap;
   };
@@ -153,10 +157,12 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
             <input
               type="checkbox"
               checked={field.enabled}
-              onChange={(e) => updateField(index, { enabled: e.target.checked })}
+              onChange={(e) =>
+                updateField(index, { enabled: e.target.checked })
+              }
               className="w-4 h-4 text-cyan-400 bg-gray-800 border-gray-600 rounded focus:ring-cyan-400"
             />
-            
+
             <input
               type="text"
               value={field.key}
@@ -168,22 +174,26 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
             <div className="flex items-center space-x-2">
               <select
                 value={field.type}
-                onChange={(e) => updateField(index, { 
-                  type: e.target.value as 'text' | 'file',
-                  value: e.target.value === 'file' ? '' : field.value,
-                  file: e.target.value === 'file' ? undefined : field.file
-                })}
+                onChange={(e) =>
+                  updateField(index, {
+                    type: e.target.value as "text" | "file",
+                    value: e.target.value === "file" ? "" : field.value,
+                    file: e.target.value === "file" ? undefined : field.file,
+                  })
+                }
                 className="px-2 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm"
               >
                 <option value="text">Text</option>
                 <option value="file">File</option>
               </select>
 
-              {field.type === 'text' ? (
+              {field.type === "text" ? (
                 <input
                   type="text"
                   value={field.value}
-                  onChange={(e) => updateField(index, { value: e.target.value })}
+                  onChange={(e) =>
+                    updateField(index, { value: e.target.value })
+                  }
                   placeholder="Field value"
                   className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400"
                 />
@@ -191,7 +201,9 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
                 <div className="flex-1 relative">
                   <input
                     type="file"
-                    onChange={(e) => handleFileChange(index, e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileChange(index, e.target.files?.[0] || null)
+                    }
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm border-dashed hover:border-cyan-400 transition-colors">
