@@ -154,12 +154,16 @@ export function RequestBuilder() {
     try {
       // Build final request with current params, headers, and path variables
       const finalRequest = buildFinalRequest();
-      
+
       // Create callback to update environment variables
-      const onEnvironmentUpdate = (environmentId: string, key: string, value: string) => {
+      const onEnvironmentUpdate = (
+        environmentId: string,
+        key: string,
+        value: string
+      ) => {
         updateEnvironmentVariable(environmentId, key, value);
       };
-      
+
       const result = await requestService.executeRequest(
         finalRequest,
         activeEnvironments,
@@ -653,10 +657,10 @@ export function RequestBuilder() {
                         value={type}
                         checked={request.bodyType === type}
                         onChange={(e) =>
-                          updateRequestData({ 
+                          updateRequestData({
                             bodyType: e.target.value as any,
                             // Clear body when switching types to avoid confusion
-                            body: e.target.value === 'none' ? '' : request.body
+                            body: e.target.value === "none" ? "" : request.body,
                           })
                         }
                         className="text-cyan-400"
@@ -678,7 +682,8 @@ export function RequestBuilder() {
                 {request.bodyType !== "none" && request.bodyType !== "form" && (
                   <div className="space-y-2">
                     <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">
-                      💡 <strong>Tip:</strong> Use <code>{"{{variable}}"}</code> to reference environment variables in your body
+                      💡 <strong>Tip:</strong> Use <code>{"{{variable}}"}</code>{" "}
+                      to reference environment variables in your body
                     </div>
                     <textarea
                       value={request.body}
@@ -701,7 +706,9 @@ export function RequestBuilder() {
                     <span>Pre-request Script</span>
                   </h4>
                   <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
-                    💡 <strong>Tip:</strong> Use <code>pm.environment.set('key', 'value')</code> to update environment variables
+                    💡 <strong>Tip:</strong> Use{" "}
+                    <code>pm.environment.set('key', 'value')</code> to update
+                    environment variables
                   </div>
                   <textarea
                     value={request.preScript}
@@ -722,7 +729,9 @@ export function RequestBuilder() {
                     <span>Post-response Script</span>
                   </h4>
                   <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
-                    💡 <strong>Tip:</strong> Use <code>pm.response.json()</code> to access response data and <code>pm.environment.set()</code> to save values
+                    💡 <strong>Tip:</strong> Use <code>pm.response.json()</code>{" "}
+                    to access response data and{" "}
+                    <code>pm.environment.set()</code> to save values
                   </div>
                   <textarea
                     value={request.postScript}
@@ -747,7 +756,8 @@ export function RequestBuilder() {
                   <span>Tests</span>
                 </h4>
                 <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
-                  💡 <strong>Tip:</strong> Use <code>pm.test()</code> to create tests and <code>pm.expect()</code> for assertions
+                  💡 <strong>Tip:</strong> Use <code>pm.test()</code> to create
+                  tests and <code>pm.expect()</code> for assertions
                 </div>
                 <textarea
                   value={request.tests}
