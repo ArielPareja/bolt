@@ -67,6 +67,11 @@ interface AppContextType {
     environmentId: string,
     updates: Omit<Environment, "_id" | "isActive" | "createdAt">
   ) => Promise<Environment>;
+  updateEnvironmentVariable: (
+    environmentId: string,
+    key: string,
+    value: string
+  ) => void;
   deleteEnvironment: (environmentId: string) => Promise<void>;
 }
 
@@ -388,6 +393,31 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   };
 
+  const updateEnvironmentVariable = (
+    environmentId: string,
+    key: string,
+    value: string
+  ) => {
+    console.log(`Updating environment variable: ${key} = ${value} in environment ${environmentId}`);
+    
+    setEnvironments((prev) =>
+      prev.map((env) => {
+        if (env._id === environmentId) {
+          const updatedEnv = {
+            ...env,
+            variables: {
+              ...env.variables,
+              [key]: value,
+            },
+          };
+          console.log(`Environment ${env.name} updated:`, updatedEnv.variables);
+          return updatedEnv;
+        }
+        return env;
+      })
+    );
+  };
+
   const deleteEnvironment = async (environmentId: string): Promise<void> => {
     try {
       await apiService.deleteEnvironment(environmentId);
@@ -441,6 +471,7 @@ export function AppProvider({ children }: AppProviderProps) {
         saveEnvironment,
         toggleEnvironmentOnCache,
         updateEnvironment,
+        updateEnvironmentVariable,
         deleteEnvironment,
       }}
     >

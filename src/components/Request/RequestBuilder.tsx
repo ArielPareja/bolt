@@ -34,6 +34,7 @@ export function RequestBuilder() {
     activeEnvironments,
     updateRequest,
     saveRequest,
+    updateEnvironmentVariable,
   } = useApp();
 
   const [request, setRequest] = useState<HttpRequest | null>(null);
@@ -153,9 +154,16 @@ export function RequestBuilder() {
     try {
       // Build final request with current params, headers, and path variables
       const finalRequest = buildFinalRequest();
+      
+      // Create callback to update environment variables
+      const onEnvironmentUpdate = (environmentId: string, key: string, value: string) => {
+        updateEnvironmentVariable(environmentId, key, value);
+      };
+      
       const result = await requestService.executeRequest(
         finalRequest,
-        activeEnvironments
+        activeEnvironments,
+        onEnvironmentUpdate
       );
       setResponse(result);
       setResponseTab("body"); // Switch to body tab to show response
@@ -426,7 +434,7 @@ export function RequestBuilder() {
             type="text"
             value={request.url}
             onChange={(e) => updateRequestData({ url: e.target.value })}
-            placeholder="Enter request URL (use :variable for path variables)"
+            placeholder="Enter request URL (use :variable for path variables, {{variable}} for environment variables)"
             className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400"
           />
 
@@ -518,7 +526,7 @@ export function RequestBuilder() {
                         onChange={(e) =>
                           updateParam(index, "value", e.target.value)
                         }
-                        placeholder="Parameter value"
+                        placeholder="Parameter value (use {{variable}} for environment variables)"
                         className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400"
                       />
                       <button
@@ -570,7 +578,7 @@ export function RequestBuilder() {
                           onChange={(e) =>
                             updatePathVariable(index, e.target.value)
                           }
-                          placeholder={`Value for ${pathVar.key}`}
+                          placeholder={`Value for ${pathVar.key} (use {{variable}} for environment variables)`}
                           className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400"
                         />
                       </div>
@@ -619,7 +627,7 @@ export function RequestBuilder() {
                         onChange={(e) =>
                           updateHeader(index, "value", e.target.value)
                         }
-                        placeholder="Header value"
+                        placeholder="Header value (use {{variable}} for environment variables)"
                         className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400"
                       />
                       <button
@@ -668,14 +676,19 @@ export function RequestBuilder() {
                 )}
 
                 {request.bodyType !== "none" && request.bodyType !== "form" && (
-                  <textarea
-                    value={request.body}
-                    onChange={(e) =>
-                      updateRequestData({ body: e.target.value })
-                    }
-                    placeholder={`Enter ${request.bodyType} data...`}
-                    className="w-full h-64 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white font-mono text-sm resize-none"
-                  />
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">
+                      💡 <strong>Tip:</strong> Use <code>{"{{variable}}"}</code> to reference environment variables in your body
+                    </div>
+                    <textarea
+                      value={request.body}
+                      onChange={(e) =>
+                        updateRequestData({ body: e.target.value })
+                      }
+                      placeholder={`Enter ${request.bodyType} data... (use {{variable}} for environment variables)`}
+                      className="w-full h-64 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white font-mono text-sm resize-none"
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -687,6 +700,9 @@ export function RequestBuilder() {
                     <Code size={16} />
                     <span>Pre-request Script</span>
                   </h4>
+                  <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
+                    💡 <strong>Tip:</strong> Use <code>pm.environment.set('key', 'value')</code> to update environment variables
+                  </div>
                   <textarea
                     value={request.preScript}
                     onChange={(e) =>
@@ -694,7 +710,8 @@ export function RequestBuilder() {
                     }
                     placeholder="// Execute JavaScript before sending request
 // Example:
-// pm.environment.set('timestamp', Date.now());"
+// pm.environment.set('timestamp', Date.now());
+// pm.environment.set('token', 'Bearer ' + pm.environment.get('apiKey'));"
                     className="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white font-mono text-sm resize-none"
                   />
                 </div>
@@ -704,6 +721,9 @@ export function RequestBuilder() {
                     <Code size={16} />
                     <span>Post-response Script</span>
                   </h4>
+                  <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
+                    💡 <strong>Tip:</strong> Use <code>pm.response.json()</code> to access response data and <code>pm.environment.set()</code> to save values
+                  </div>
                   <textarea
                     value={request.postScript}
                     onChange={(e) =>
@@ -711,7 +731,9 @@ export function RequestBuilder() {
                     }
                     placeholder="// Execute JavaScript after receiving response
 // Example:
-// pm.environment.set('token', pm.response.json().token);"
+// const responseData = pm.response.json();
+// pm.environment.set('token', responseData.token);
+// pm.environment.set('userId', responseData.user.id);"
                     className="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white font-mono text-sm resize-none"
                   />
                 </div>
@@ -724,6 +746,9 @@ export function RequestBuilder() {
                   <TestTube size={16} />
                   <span>Tests</span>
                 </h4>
+                <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded mb-2">
+                  💡 <strong>Tip:</strong> Use <code>pm.test()</code> to create tests and <code>pm.expect()</code> for assertions
+                </div>
                 <textarea
                   value={request.tests}
                   onChange={(e) => updateRequestData({ tests: e.target.value })}
@@ -732,7 +757,9 @@ export function RequestBuilder() {
 });
 
 pm.test('Response has required fields', function () {
-    pm.expect(pm.response.data).to.have.property('id');
+    const responseData = pm.response.json();
+    pm.expect(responseData).to.have.property('id');
+    pm.expect(responseData).to.have.property('name');
 });
 
 pm.test('Response is ok', function () {

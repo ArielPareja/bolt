@@ -3,7 +3,8 @@ import { HttpRequest, RequestResponse, Environment, TestResult } from '../types'
 class RequestService {
   async executeRequest(
     request: HttpRequest, 
-    environments: Environment[] = []
+    environments: Environment[] = [],
+    onEnvironmentUpdate?: (environmentId: string, key: string, value: string) => void
   ): Promise<RequestResponse> {
     const startTime = Date.now();
     
@@ -20,12 +21,24 @@ class RequestService {
         variables: mergedVariables,
         request,
         updateEnvironmentVariable: (key: string, value: string, environmentName?: string) => {
-          // Note: In the new architecture, we can't directly update environments from here
-          // This would need to be handled differently, perhaps through callbacks
-          console.log(`Would update environment variable ${key} = ${value} in ${environmentName || 'default'}`);
-          
           // Update the merged variables for immediate use
           mergedVariables[key] = value;
+          
+          // Find the target environment
+          let targetEnv: Environment | undefined;
+          
+          if (environmentName) {
+            // Find environment by name
+            targetEnv = environments.find(env => env.name === environmentName);
+          } else {
+            // Use the first active environment, or first environment if none active
+            targetEnv = environments.find(env => env.isActive) || environments[0];
+          }
+          
+          if (targetEnv && onEnvironmentUpdate) {
+            // Call the callback to update the environment in the context
+            onEnvironmentUpdate(targetEnv._id, key, value);
+          }
         }
       };
 
@@ -81,8 +94,9 @@ class RequestService {
                     console.log(`Added mock file: ${field.fileName}`);
                   }
                 } else {
-                  // Text field
-                  formData!.append(field.key, field.value || '');
+                  // Text field - replace environment variables in the value
+                  const processedValue = this.replaceVariables(field.value || '', mergedVariables);
+                  formData!.append(field.key, processedValue);
                 }
               }
             });
@@ -102,7 +116,10 @@ class RequestService {
             if (Array.isArray(formFields)) {
               const urlEncodedData = formFields
                 .filter((field: any) => field.enabled && field.key && field.type === 'text')
-                .map((field: any) => `${encodeURIComponent(field.key)}=${encodeURIComponent(field.value || '')}`)
+                .map((field: any) => {
+                  const processedValue = this.replaceVariables(field.value || '', mergedVariables);
+                  return `${encodeURIComponent(field.key)}=${encodeURIComponent(processedValue)}`;
+                })
                 .join('&');
               body = urlEncodedData;
             }
@@ -246,7 +263,13 @@ class RequestService {
 
   private replaceVariables(text: string, variables: Record<string, string>): string {
     return text.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-      return variables[varName] || match;
+      const value = variables[varName];
+      if (value !== undefined) {
+        console.log(`Replacing variable {{${varName}}} with: ${value}`);
+        return value;
+      }
+      console.warn(`Variable {{${varName}}} not found in environment`);
+      return match;
     });
   }
 
@@ -293,8 +316,13 @@ class RequestService {
           text: () => typeof context.response.data === 'string' ? context.response.data : JSON.stringify(context.response.data)
         } : undefined,
         environment: {
-          get: (key: string) => context.variables?.[key],
+          get: (key: string) => {
+            const value = context.variables?.[key];
+            console.log(`Getting environment variable ${key}: ${value}`);
+            return value;
+          },
           set: (key: string, value: string, environmentName?: string) => {
+            console.log(`Setting environment variable ${key} = ${value} in ${environmentName || 'default environment'}`);
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
@@ -304,8 +332,13 @@ class RequestService {
           }
         },
         globals: {
-          get: (key: string) => context.variables?.[key],
+          get: (key: string) => {
+            const value = context.variables?.[key];
+            console.log(`Getting global variable ${key}: ${value}`);
+            return value;
+          },
           set: (key: string, value: string, environmentName?: string) => {
+            console.log(`Setting global variable ${key} = ${value} in ${environmentName || 'default environment'}`);
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
@@ -403,8 +436,13 @@ class RequestService {
           }
         },
         environment: {
-          get: (key: string) => context.variables?.[key],
+          get: (key: string) => {
+            const value = context.variables?.[key];
+            console.log(`Getting environment variable ${key}: ${value}`);
+            return value;
+          },
           set: (key: string, value: string, environmentName?: string) => {
+            console.log(`Setting environment variable ${key} = ${value} in ${environmentName || 'default environment'}`);
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
@@ -414,8 +452,13 @@ class RequestService {
           }
         },
         globals: {
-          get: (key: string) => context.variables?.[key],
+          get: (key: string) => {
+            const value = context.variables?.[key];
+            console.log(`Getting global variable ${key}: ${value}`);
+            return value;
+          },
           set: (key: string, value: string, environmentName?: string) => {
+            console.log(`Setting global variable ${key} = ${value} in ${environmentName || 'default environment'}`);
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
