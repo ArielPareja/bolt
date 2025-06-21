@@ -51,7 +51,10 @@ interface AppContextType {
   deleteCollection: (collectionId: string) => Promise<void>;
   saveRequest: (
     collectionId: string,
-    request: Omit<HttpRequest, "_id" | "createdAt" | "updatedAt" | "collectionId">
+    request: Omit<
+      HttpRequest,
+      "_id" | "createdAt" | "updatedAt" | "collectionId"
+    >
   ) => Promise<HttpRequest>;
   updateRequest: (
     collectionId: string,
@@ -119,6 +122,7 @@ export function AppProvider({ children }: AppProviderProps) {
   useEffect(() => {
     const activeEnvs = environments.filter((env) => env.isActive);
     setActiveEnvironments(activeEnvs);
+    scheduleService.setActiveEnvironmentsForSchedule(activeEnvs);
   }, [environments]);
 
   // Data operations
@@ -244,7 +248,10 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const saveRequest = async (
     collectionId: string,
-    request: Omit<HttpRequest, "_id" | "createdAt" | "updatedAt" | "collectionId">
+    request: Omit<
+      HttpRequest,
+      "_id" | "createdAt" | "updatedAt" | "collectionId"
+    >
   ): Promise<HttpRequest> => {
     try {
       const newRequest = await apiService.createRequest(collectionId, request);
@@ -398,8 +405,10 @@ export function AppProvider({ children }: AppProviderProps) {
     key: string,
     value: string
   ) => {
-    console.log(`Updating environment variable: ${key} = ${value} in environment ${environmentId}`);
-    
+    console.log(
+      `Updating environment variable: ${key} = ${value} in environment ${environmentId}`
+    );
+
     setEnvironments((prev) =>
       prev.map((env) => {
         if (env._id === environmentId) {
