@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Upload, File, Type } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Upload, File } from "lucide-react";
 
 interface FormField {
   key: string;
@@ -29,8 +29,6 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
               ...field,
               type: field.type || "text",
               enabled: field.enabled !== false,
-              // Don't try to restore file objects from JSON
-              //file: undefined
             }))
           );
           return;
@@ -58,7 +56,7 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
     if (fields.length === 0) {
       setFields([{ key: "", value: "", type: "text", enabled: true }]);
     }
-  }, [value]);
+  }, []);
 
   // Update parent component when fields change
   useEffect(() => {
@@ -82,8 +80,12 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
       }
       return field;
     });
-    onChange(JSON.stringify(serializedData));
+    notifyChange(serializedData);
   }, [fields]);
+
+  const notifyChange = (serializedData) => {
+    onChange(JSON.stringify(serializedData));
+  };
 
   const updateField = (index: number, updates: Partial<FormField>) => {
     const newFields = [...fields];
@@ -139,6 +141,16 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
 
   return (
     <div className="space-y-3">
+      <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded-lg">
+        <div className="font-medium mb-1">Form Data Tips:</div>
+        <ul className="space-y-1">
+          <li>• Use "Text" type for regular form fields</li>
+          <li>• Use "File" type to upload files (images, documents, etc.)</li>
+          <li>• Files will be sent as multipart/form-data</li>
+          <li>• Disable fields to exclude them from the request</li>
+          <li>• Selected files are stored temporarily for the request</li>
+        </ul>
+      </div>
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium text-gray-300">Form Data</h4>
         <button
@@ -235,17 +247,6 @@ export function FormDataEditor({ value, onChange }: FormDataEditorProps) {
             </button>
           </div>
         ))}
-      </div>
-
-      <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded-lg">
-        <div className="font-medium mb-1">Form Data Tips:</div>
-        <ul className="space-y-1">
-          <li>• Use "Text" type for regular form fields</li>
-          <li>• Use "File" type to upload files (images, documents, etc.)</li>
-          <li>• Files will be sent as multipart/form-data</li>
-          <li>• Disable fields to exclude them from the request</li>
-          <li>• Selected files are stored temporarily for the request</li>
-        </ul>
       </div>
     </div>
   );
