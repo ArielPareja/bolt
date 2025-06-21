@@ -1,17 +1,26 @@
-import { HttpRequest, RequestResponse, Environment, TestResult } from '../types';
+import {
+  HttpRequest,
+  RequestResponse,
+  Environment,
+  TestResult,
+} from "../types";
 
 class RequestService {
   async executeRequest(
-    request: HttpRequest, 
+    request: HttpRequest,
     environments: Environment[] = [],
-    onEnvironmentUpdate?: (environmentId: string, key: string, value: string) => void
+    onEnvironmentUpdate?: (
+      environmentId: string,
+      key: string,
+      value: string
+    ) => void
   ): Promise<RequestResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Merge all active environment variables
       const mergedVariables: Record<string, string> = {};
-      environments.forEach(env => {
+      environments.forEach((env) => {
         Object.assign(mergedVariables, env.variables);
       });
 
@@ -20,26 +29,33 @@ class RequestService {
         environments,
         variables: mergedVariables,
         request,
-        updateEnvironmentVariable: (key: string, value: string, environmentName?: string) => {
+        updateEnvironmentVariable: (
+          key: string,
+          value: string,
+          environmentName?: string
+        ) => {
           // Update the merged variables for immediate use
           mergedVariables[key] = value;
-          
+
           // Find the target environment
           let targetEnv: Environment | undefined;
-          
+
           if (environmentName) {
             // Find environment by name
-            targetEnv = environments.find(env => env.name === environmentName);
+            targetEnv = environments.find(
+              (env) => env.name === environmentName
+            );
           } else {
             // Use the first active environment, or first environment if none active
-            targetEnv = environments.find(env => env.isActive) || environments[0];
+            targetEnv =
+              environments.find((env) => env.isActive) || environments[0];
           }
-          
+
           if (targetEnv && onEnvironmentUpdate) {
             // Call the callback to update the environment in the context
             onEnvironmentUpdate(targetEnv._id, key, value);
           }
-        }
+        },
       };
 
       // Execute pre-request script if present
@@ -47,90 +63,107 @@ class RequestService {
         try {
           await this.executeScript(request.preScript, scriptContext);
         } catch (error) {
-          console.warn('Pre-request script error:', error);
+          console.warn("Pre-request script error:", error);
         }
       }
 
       // Replace environment variables in URL and body
       const url = this.replaceVariables(request.url, mergedVariables);
       let body = this.replaceVariables(request.body, mergedVariables);
-      
+
       // Prepare headers
       const headers: Record<string, string> = { ...request.headers };
-      
+
       // Replace environment variables in headers
-      Object.keys(headers).forEach(key => {
+      Object.keys(headers).forEach((key) => {
         headers[key] = this.replaceVariables(headers[key], mergedVariables);
       });
-      
+
       // Handle form data
       let formData: FormData | undefined;
-      if (request.bodyType === 'form' && body) {
+      if (request.bodyType === "form" && body) {
         try {
           const formFields = JSON.parse(body);
           if (Array.isArray(formFields)) {
             formData = new FormData();
-            
+
             // Get stored files from global variable
             const storedFiles = (window as any).__formDataFiles || {};
-            
+
             formFields.forEach((field: any, index: number) => {
               if (field.enabled && field.key) {
-                if (field.type === 'file') {
+                if (field.type === "file") {
                   // Try to get the real file from storage
                   const fileKey = `${field.key}_${index}`;
                   const realFile = storedFiles[fileKey];
-                  
+
                   if (realFile && realFile instanceof File) {
                     // Use the real file
                     formData!.append(field.key, realFile);
-                    console.log(`Added real file: ${realFile.name} (${realFile.size} bytes)`);
+                    console.log(
+                      `Added real file: ${realFile.name} (${realFile.size} bytes)`
+                    );
                   } else if (field.fileName) {
                     // Fallback: create a mock file with the stored filename
-                    const mockFile = new File(['[File content not available in demo]'], field.fileName, {
-                      type: field.fileType || 'application/octet-stream'
-                    });
+                    const mockFile = new File(
+                      ["[File content not available in demo]"],
+                      field.fileName,
+                      {
+                        type: field.fileType || "application/octet-stream",
+                      }
+                    );
                     formData!.append(field.key, mockFile);
                     console.log(`Added mock file: ${field.fileName}`);
                   }
                 } else {
                   // Text field - replace environment variables in the value
-                  const processedValue = this.replaceVariables(field.value || '', mergedVariables);
+                  const processedValue = this.replaceVariables(
+                    field.value || "",
+                    mergedVariables
+                  );
                   formData!.append(field.key, processedValue);
                 }
               }
             });
-            
+
             // Don't set Content-Type for FormData - browser will set it with boundary
-            delete headers['Content-Type'];
-            body = ''; // Clear body since we're using FormData
+            delete headers["Content-Type"];
+            body = ""; // Clear body since we're using FormData
           }
         } catch (error) {
-          console.warn('Error parsing form data:', error);
+          console.warn("Error parsing form data:", error);
           // Fall back to URL encoded
-          headers['Content-Type'] = 'application/x-www-form-urlencoded';
-          
+          headers["Content-Type"] = "application/x-www-form-urlencoded";
+
           // Convert JSON form data to URL encoded format
           try {
             const formFields = JSON.parse(body);
             if (Array.isArray(formFields)) {
               const urlEncodedData = formFields
-                .filter((field: any) => field.enabled && field.key && field.type === 'text')
+                .filter(
+                  (field: any) =>
+                    field.enabled && field.key && field.type === "text"
+                )
                 .map((field: any) => {
-                  const processedValue = this.replaceVariables(field.value || '', mergedVariables);
-                  return `${encodeURIComponent(field.key)}=${encodeURIComponent(processedValue)}`;
+                  const processedValue = this.replaceVariables(
+                    field.value || "",
+                    mergedVariables
+                  );
+                  return `${encodeURIComponent(field.key)}=${encodeURIComponent(
+                    processedValue
+                  )}`;
                 })
-                .join('&');
+                .join("&");
               body = urlEncodedData;
             }
           } catch {
             // Keep original body if parsing fails
           }
         }
-      } else if (request.bodyType === 'json' && body) {
-        headers['Content-Type'] = 'application/json';
-      } else if (request.bodyType === 'form' && body) {
-        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      } else if (request.bodyType === "json" && body) {
+        headers["Content-Type"] = "application/json";
+      } else if (request.bodyType === "form" && body) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
       }
 
       // Prepare fetch options
@@ -140,26 +173,28 @@ class RequestService {
       };
 
       // Add body if not GET/HEAD
-      if (request.method !== 'GET' && request.method !== 'HEAD') {
+      if (request.method !== "GET" && request.method !== "HEAD") {
         if (formData) {
           options.body = formData;
-          console.log('Using FormData for request body');
-          
+          console.log("Using FormData for request body");
+
           // Log FormData contents for debugging
           for (const [key, value] of formData.entries()) {
             if (value instanceof File) {
-              console.log(`FormData field: ${key} = File(${value.name}, ${value.size} bytes, ${value.type})`);
+              console.log(
+                `FormData field: ${key} = File(${value.name}, ${value.size} bytes, ${value.type})`
+              );
             } else {
               console.log(`FormData field: ${key} = ${value}`);
             }
           }
         } else if (body) {
-          if (request.bodyType === 'json') {
+          if (request.bodyType === "json") {
             try {
               JSON.parse(body); // Validate JSON
               options.body = body;
             } catch {
-              throw new Error('Invalid JSON body');
+              throw new Error("Invalid JSON body");
             }
           } else {
             options.body = body;
@@ -168,21 +203,21 @@ class RequestService {
       }
 
       // Execute request
-      console.log('Executing request:', {
+      console.log("Executing request:", {
         method: request.method,
         url,
         headers: options.headers,
-        bodyType: formData ? 'FormData' : typeof options.body
+        bodyType: formData ? "FormData" : typeof options.body,
       });
 
       const response = await fetch(url, options);
       const endTime = Date.now();
-      
+
       // Get response data
       let data: any;
-      const contentType = response.headers.get('content-type') || '';
-      
-      if (contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
         try {
           data = await response.json();
         } catch {
@@ -205,13 +240,13 @@ class RequestService {
         data,
         time: endTime - startTime,
         size: this.calculateSize(data),
-        testResults: []
+        testResults: [],
       };
 
       // Update script context with response
       const postScriptContext = {
         ...scriptContext,
-        response: requestResponse
+        response: requestResponse,
       };
 
       // Execute post-response script if present
@@ -219,49 +254,58 @@ class RequestService {
         try {
           await this.executeScript(request.postScript, postScriptContext);
         } catch (error) {
-          console.warn('Post-response script error:', error);
+          console.warn("Post-response script error:", error);
         }
       }
 
       // Execute tests if present
       if (request.tests?.trim()) {
         try {
-          const testResults = await this.executeTests(request.tests, postScriptContext);
+          const testResults = await this.executeTests(
+            request.tests,
+            postScriptContext
+          );
           requestResponse.testResults = testResults;
         } catch (error) {
-          console.warn('Test execution error:', error);
-          requestResponse.testResults = [{
-            name: 'Test Execution Error',
-            passed: false,
-            error: error instanceof Error ? error.message : 'Unknown test error'
-          }];
+          console.warn("Test execution error:", error);
+          requestResponse.testResults = [
+            {
+              name: "Test Execution Error",
+              passed: false,
+              error:
+                error instanceof Error ? error.message : "Unknown test error",
+            },
+          ];
         }
       }
 
       return requestResponse;
     } catch (error) {
       const endTime = Date.now();
-      console.error('Request execution error:', error);
+      console.error("Request execution error:", error);
       throw {
         status: 0,
-        statusText: 'Network Error',
+        statusText: "Network Error",
         headers: {},
-        data: error instanceof Error ? error.message : 'Unknown error',
+        data: error instanceof Error ? error.message : "Unknown error",
         time: endTime - startTime,
         size: 0,
-        testResults: []
+        testResults: [],
       };
     }
   }
 
   private calculateSize(data: any): number {
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       return new Blob([data]).size;
     }
     return new Blob([JSON.stringify(data)]).size;
   }
 
-  private replaceVariables(text: string, variables: Record<string, string>): string {
+  private replaceVariables(
+    text: string,
+    variables: Record<string, string>
+  ): string {
     return text.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
       const value = variables[varName];
       if (value !== undefined) {
@@ -276,8 +320,8 @@ class RequestService {
   async executeScript(script: string, context: any = {}): Promise<any> {
     try {
       // Create a sandboxed execution context
-      const func = new Function('pm', 'response', 'environments', script);
-      
+      const func = new Function("pm", "response", "environments", script);
+
       // Mock pm object for Postman-like scripting
       const pm = {
         test: (name: string, fn: () => void) => {
@@ -285,10 +329,10 @@ class RequestService {
             fn();
             return { name, passed: true };
           } catch (error) {
-            return { 
-              name, 
-              passed: false, 
-              error: error instanceof Error ? error.message : 'Test failed' 
+            return {
+              name,
+              passed: false,
+              error: error instanceof Error ? error.message : "Test failed",
             };
           }
         },
@@ -302,19 +346,26 @@ class RequestService {
             have: {
               status: (expected: number) => {
                 if (context.response?.status !== expected) {
-                  throw new Error(`Expected status ${expected} but got ${context.response?.status}`);
+                  throw new Error(
+                    `Expected status ${expected} but got ${context.response?.status}`
+                  );
                 }
-              }
-            }
-          }
+              },
+            },
+          },
         }),
-        response: context.response ? {
-          status: context.response.status,
-          headers: context.response.headers,
-          data: context.response.data,
-          json: () => context.response.data,
-          text: () => typeof context.response.data === 'string' ? context.response.data : JSON.stringify(context.response.data)
-        } : undefined,
+        response: context.response
+          ? {
+              status: context.response.status,
+              headers: context.response.headers,
+              data: context.response.data,
+              json: () => context.response.data,
+              text: () =>
+                typeof context.response.data === "string"
+                  ? context.response.data
+                  : JSON.stringify(context.response.data),
+            }
+          : undefined,
         environment: {
           get: (key: string) => {
             const value = context.variables?.[key];
@@ -322,14 +373,18 @@ class RequestService {
             return value;
           },
           set: (key: string, value: string, environmentName?: string) => {
-            console.log(`Setting environment variable ${key} = ${value} in ${environmentName || 'default environment'}`);
+            console.log(
+              `Setting environment variable ${key} = ${value} in ${
+                environmentName || "default environment"
+              }`
+            );
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
             if (context.variables) {
               context.variables[key] = value;
             }
-          }
+          },
         },
         globals: {
           get: (key: string) => {
@@ -338,30 +393,39 @@ class RequestService {
             return value;
           },
           set: (key: string, value: string, environmentName?: string) => {
-            console.log(`Setting global variable ${key} = ${value} in ${environmentName || 'default environment'}`);
+            console.log(
+              `Setting global variable ${key} = ${value} in ${
+                environmentName || "default environment"
+              }`
+            );
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
             if (context.variables) {
               context.variables[key] = value;
             }
-          }
-        }
+          },
+        },
       };
 
       return func(pm, context.response, context.environments);
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Script execution failed');
+      throw error instanceof Error
+        ? error
+        : new Error("Script execution failed");
     }
   }
 
-  async executeTests(testScript: string, context: any = {}): Promise<TestResult[]> {
+  async executeTests(
+    testScript: string,
+    context: any = {}
+  ): Promise<TestResult[]> {
     const testResults: TestResult[] = [];
-    
+
     try {
       // Create a sandboxed execution context for tests
-      const func = new Function('pm', 'response', 'environments', testScript);
-      
+      const func = new Function("pm", "response", "environments", testScript);
+
       // Mock pm object with test collection
       const pm = {
         test: (name: string, fn: () => void) => {
@@ -369,10 +433,10 @@ class RequestService {
             fn();
             testResults.push({ name, passed: true });
           } catch (error) {
-            testResults.push({ 
-              name, 
-              passed: false, 
-              error: error instanceof Error ? error.message : 'Test failed' 
+            testResults.push({
+              name,
+              passed: false,
+              error: error instanceof Error ? error.message : "Test failed",
             });
           }
         },
@@ -386,54 +450,74 @@ class RequestService {
             have: {
               status: (expected: number) => {
                 if (context.response?.status !== expected) {
-                  throw new Error(`Expected status ${expected} but got ${context.response?.status}`);
+                  throw new Error(
+                    `Expected status ${expected} but got ${context.response?.status}`
+                  );
                 }
               },
               property: (prop: string) => {
-                if (typeof context.response?.data !== 'object' || !(prop in context.response.data)) {
-                  throw new Error(`Expected response to have property '${prop}'`);
+                if (
+                  typeof context.response?.data !== "object" ||
+                  !(prop in context.response.data)
+                ) {
+                  throw new Error(
+                    `Expected response to have property '${prop}'`
+                  );
                 }
                 return {
                   that: {
                     equals: (expected: any) => {
                       if (context.response.data[prop] !== expected) {
-                        throw new Error(`Expected property '${prop}' to equal ${expected} but got ${context.response.data[prop]}`);
+                        throw new Error(
+                          `Expected property '${prop}' to equal ${expected} but got ${context.response.data[prop]}`
+                        );
                       }
-                    }
-                  }
+                    },
+                  },
                 };
-              }
+              },
             },
             be: {
               ok: () => {
-                if (context.response?.status < 200 || context.response?.status >= 300) {
-                  throw new Error(`Expected response to be ok but got status ${context.response?.status}`);
+                if (
+                  context.response?.status < 200 ||
+                  context.response?.status >= 300
+                ) {
+                  throw new Error(
+                    `Expected response to be ok but got status ${context.response?.status}`
+                  );
                 }
-              }
-            }
-          }
+              },
+            },
+          },
         }),
         response: {
           status: context.response?.status,
           headers: context.response?.headers,
           data: context.response?.data,
           json: () => context.response?.data,
-          text: () => typeof context.response?.data === 'string' ? context.response?.data : JSON.stringify(context.response?.data),
+          text: () =>
+            typeof context.response?.data === "string"
+              ? context.response?.data
+              : JSON.stringify(context.response?.data),
           to: {
             have: {
               status: (expected: number) => {
                 if (context.response?.status !== expected) {
-                  throw new Error(`Expected status ${expected} but got ${context.response?.status}`);
+                  throw new Error(
+                    `Expected status ${expected} but got ${context.response?.status}`
+                  );
                 }
               },
               jsonBody: () => {
-                const contentType = context.response?.headers['content-type'] || '';
-                if (!contentType.includes('application/json')) {
-                  throw new Error('Expected response to have JSON body');
+                const contentType =
+                  context.response?.headers["content-type"] || "";
+                if (!contentType.includes("application/json")) {
+                  throw new Error("Expected response to have JSON body");
                 }
-              }
-            }
-          }
+              },
+            },
+          },
         },
         environment: {
           get: (key: string) => {
@@ -442,14 +526,18 @@ class RequestService {
             return value;
           },
           set: (key: string, value: string, environmentName?: string) => {
-            console.log(`Setting environment variable ${key} = ${value} in ${environmentName || 'default environment'}`);
+            console.log(
+              `Setting environment variable ${key} = ${value} in ${
+                environmentName || "default environment"
+              }`
+            );
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
             if (context.variables) {
               context.variables[key] = value;
             }
-          }
+          },
         },
         globals: {
           get: (key: string) => {
@@ -458,26 +546,32 @@ class RequestService {
             return value;
           },
           set: (key: string, value: string, environmentName?: string) => {
-            console.log(`Setting global variable ${key} = ${value} in ${environmentName || 'default environment'}`);
+            console.log(
+              `Setting global variable ${key} = ${value} in ${
+                environmentName || "default environment"
+              }`
+            );
             if (context.updateEnvironmentVariable) {
               context.updateEnvironmentVariable(key, value, environmentName);
             }
             if (context.variables) {
               context.variables[key] = value;
             }
-          }
-        }
+          },
+        },
       };
 
       // Execute the test script
       func(pm, context.response, context.environments);
-      
     } catch (error) {
       // If there's a syntax error or other issue with the test script itself
       testResults.push({
-        name: 'Test Script Error',
+        name: "Test Script Error",
         passed: false,
-        error: error instanceof Error ? error.message : 'Test script execution failed'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Test script execution failed",
       });
     }
 
