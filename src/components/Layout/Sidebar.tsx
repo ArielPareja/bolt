@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Folder,
   Plus,
   Search,
-  Play,
-  Settings,
   Globe,
   Clock,
   ChevronDown,
@@ -12,21 +10,17 @@ import {
   MoreVertical,
   Edit,
   Trash2,
-  Copy,
-  Calendar,
   CheckCircle,
   XCircle,
   AlertCircle,
   PlayCircle,
-  PauseCircle,
-  Filter,
   X,
   History,
   Timer,
-} from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { useStorage } from '../../hooks/useStorage';
-import { HttpRequest, Collection, Schedule, Environment } from '../../types';
+} from "lucide-react";
+import { useApp } from "../../contexts/AppContext";
+import { useStorage } from "../../hooks/useStorage";
+import { HttpRequest, Collection, Schedule, Environment } from "../../types";
 
 export function Sidebar() {
   const {
@@ -40,7 +34,6 @@ export function Sidebar() {
     loadCollectionDetails,
     setActiveRequest,
     saveCollection,
-    updateCollection,
     deleteCollection,
     saveRequest,
     deleteRequest,
@@ -60,7 +53,7 @@ export function Sidebar() {
   } = useStorage();
 
   // Local state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Collection[]>([]);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
     new Set()
@@ -74,40 +67,43 @@ export function Sidebar() {
   );
   const [showNewEnvironmentForm, setShowNewEnvironmentForm] = useState(false);
   const [showNewScheduleForm, setShowNewScheduleForm] = useState(false);
-  const [editingEnvironment, setEditingEnvironment] = useState<Environment | null>(null);
+  const [editingEnvironment, setEditingEnvironment] =
+    useState<Environment | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
 
   // Collection form state
   const [newCollection, setNewCollection] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
   });
 
   // Request form state
   const [newRequest, setNewRequest] = useState({
-    name: '',
-    method: 'GET' as const,
-    url: '',
+    name: "",
+    method: "GET" as const,
+    url: "",
   });
 
   // Environment form state
   const [environmentForm, setEnvironmentForm] = useState({
-    name: '',
-    variables: [{ key: '', value: '' }],
+    name: "",
+    variables: [{ key: "", value: "" }],
   });
 
   // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     collections: [] as string[],
     interval: 60,
     enabled: true,
   });
 
   // Collection search for scheduler
-  const [collectionSearchQuery, setCollectionSearchQuery] = useState('');
-  const [collectionSearchResults, setCollectionSearchResults] = useState<Collection[]>([]);
+  const [collectionSearchQuery, setCollectionSearchQuery] = useState("");
+  const [collectionSearchResults, setCollectionSearchResults] = useState<
+    Collection[]
+  >([]);
   const [showCollectionSearch, setShowCollectionSearch] = useState(false);
 
   // Search functionality
@@ -150,7 +146,7 @@ export function Sidebar() {
       try {
         await loadCollectionDetails(collectionId);
       } catch (error) {
-        console.error('Error loading collection details:', error);
+        console.error("Error loading collection details:", error);
       }
     }
     setExpandedCollections(newExpanded);
@@ -170,10 +166,10 @@ export function Sidebar() {
     e.preventDefault();
     try {
       await saveCollection(newCollection);
-      setNewCollection({ name: '', description: '' });
+      setNewCollection({ name: "", description: "" });
       setShowNewCollectionForm(false);
     } catch (error) {
-      console.error('Error creating collection:', error);
+      console.error("Error creating collection:", error);
     }
   };
 
@@ -185,17 +181,17 @@ export function Sidebar() {
       const savedRequest = await saveRequest(showNewRequestForm, {
         ...newRequest,
         headers: {},
-        body: '',
-        bodyType: 'none',
-        preScript: '',
-        postScript: '',
-        tests: '',
+        body: "",
+        bodyType: "none",
+        preScript: "",
+        postScript: "",
+        tests: "",
       });
       setActiveRequest(savedRequest);
-      setNewRequest({ name: '', method: 'GET', url: '' });
+      setNewRequest({ name: "", method: "GET", url: "" });
       setShowNewRequestForm(null);
     } catch (error) {
-      console.error('Error creating request:', error);
+      console.error("Error creating request:", error);
     }
   };
 
@@ -214,10 +210,10 @@ export function Sidebar() {
         variables,
       });
 
-      setEnvironmentForm({ name: '', variables: [{ key: '', value: '' }] });
+      setEnvironmentForm({ name: "", variables: [{ key: "", value: "" }] });
       setShowNewEnvironmentForm(false);
     } catch (error) {
-      console.error('Error creating environment:', error);
+      console.error("Error creating environment:", error);
     }
   };
 
@@ -239,9 +235,10 @@ export function Sidebar() {
       });
 
       setEditingEnvironment(null);
-      setEnvironmentForm({ name: '', variables: [{ key: '', value: '' }] });
+      setShowNewEnvironmentForm(false);
+      setEnvironmentForm({ name: "", variables: [{ key: "", value: "" }] });
     } catch (error) {
-      console.error('Error updating environment:', error);
+      console.error("Error updating environment:", error);
     }
   };
 
@@ -257,17 +254,17 @@ export function Sidebar() {
 
       saveSchedule(schedule);
       setScheduleForm({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         collections: [],
         interval: 60,
         enabled: true,
       });
       setShowNewScheduleForm(false);
       setShowCollectionSearch(false);
-      setCollectionSearchQuery('');
+      setCollectionSearchQuery("");
     } catch (error) {
-      console.error('Error creating schedule:', error);
+      console.error("Error creating schedule:", error);
     }
   };
 
@@ -283,18 +280,19 @@ export function Sidebar() {
       };
 
       saveSchedule(updatedSchedule);
-      setEditingSchedule(null);
       setScheduleForm({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         collections: [],
         interval: 60,
         enabled: true,
       });
+      setShowNewScheduleForm(false);
       setShowCollectionSearch(false);
-      setCollectionSearchQuery('');
+      setEditingSchedule(null);
+      setCollectionSearchQuery("");
     } catch (error) {
-      console.error('Error updating schedule:', error);
+      console.error("Error updating schedule:", error);
     }
   };
 
@@ -325,13 +323,13 @@ export function Sidebar() {
   const addEnvironmentVariable = () => {
     setEnvironmentForm({
       ...environmentForm,
-      variables: [...environmentForm.variables, { key: '', value: '' }],
+      variables: [...environmentForm.variables, { key: "", value: "" }],
     });
   };
 
   const updateEnvironmentVariable = (
     index: number,
-    field: 'key' | 'value',
+    field: "key" | "value",
     value: string
   ) => {
     const newVariables = [...environmentForm.variables];
@@ -344,36 +342,39 @@ export function Sidebar() {
       (_, i) => i !== index
     );
     if (newVariables.length === 0) {
-      newVariables.push({ key: '', value: '' });
+      newVariables.push({ key: "", value: "" });
     }
     setEnvironmentForm({ ...environmentForm, variables: newVariables });
   };
 
   const toggleCollectionInSchedule = (collectionId: string) => {
     const newCollections = scheduleForm.collections.includes(collectionId)
-      ? scheduleForm.collections.filter(id => id !== collectionId)
+      ? scheduleForm.collections.filter((id) => id !== collectionId)
       : [...scheduleForm.collections, collectionId];
-    
+
     setScheduleForm({ ...scheduleForm, collections: newCollections });
   };
 
   const removeCollectionFromSchedule = (collectionId: string) => {
     setScheduleForm({
       ...scheduleForm,
-      collections: scheduleForm.collections.filter(id => id !== collectionId)
+      collections: scheduleForm.collections.filter((id) => id !== collectionId),
     });
   };
 
   const getSelectedCollectionNames = () => {
     return collections
-      .filter(c => scheduleForm.collections.includes(c._id))
-      .map(c => c.name);
+      .filter((c) => scheduleForm.collections.includes(c._id))
+      .map((c) => c.name);
   };
 
   const getScheduleExecutions = (scheduleId: string) => {
     return scheduleExecutions
-      .filter(exec => exec.scheduleId === scheduleId)
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .filter((exec) => exec.scheduleId === scheduleId)
+      .sort(
+        (a, b) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      )
       .slice(0, 4); // Only show last 4 executions
   };
 
@@ -381,7 +382,7 @@ export function Sidebar() {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const duration = end.getTime() - start.getTime();
-    
+
     if (duration < 1000) {
       return `${duration}ms`;
     } else if (duration < 60000) {
@@ -395,9 +396,9 @@ export function Sidebar() {
     const now = new Date();
     const time = new Date(timestamp);
     const diff = now.getTime() - time.getTime();
-    
+
     if (diff < 60000) {
-      return 'Just now';
+      return "Just now";
     } else if (diff < 3600000) {
       return `${Math.floor(diff / 60000)}m ago`;
     } else if (diff < 86400000) {
@@ -407,75 +408,40 @@ export function Sidebar() {
     }
   };
 
-  if (sidebarCollapsed) {
-    return (
-      <div className="w-16 bg-gray-800 border-r border-gray-700 flex flex-col items-center py-4 space-y-4">
-        <button
-          onClick={() => setActiveTab('collections')}
-          className={`p-3 rounded-lg transition-colors ${
-            activeTab === 'collections'
-              ? 'bg-cyan-500 text-white'
-              : 'text-gray-400 hover:text-cyan-400 hover:bg-gray-700'
-          }`}
-        >
-          <Folder size={20} />
-        </button>
-        <button
-          onClick={() => setActiveTab('environments')}
-          className={`p-3 rounded-lg transition-colors ${
-            activeTab === 'environments'
-              ? 'bg-cyan-500 text-white'
-              : 'text-gray-400 hover:text-cyan-400 hover:bg-gray-700'
-          }`}
-        >
-          <Globe size={20} />
-        </button>
-        <button
-          onClick={() => setActiveTab('schedules')}
-          className={`p-3 rounded-lg transition-colors ${
-            activeTab === 'schedules'
-              ? 'bg-cyan-500 text-white'
-              : 'text-gray-400 hover:text-cyan-400 hover:bg-gray-700'
-          }`}
-        >
-          <Clock size={20} />
-        </button>
-      </div>
-    );
-  }
+  if (sidebarCollapsed) return;
 
   return (
-    <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="w-120 bg-gray-800 border-r border-gray-700 flex flex-col">
       {/* Tabs */}
       <div className="flex border-b border-gray-700">
         <button
-          onClick={() => setActiveTab('collections')}
+          onClick={() => setActiveTab("collections")}
           className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center space-x-2 transition-colors ${
-            activeTab === 'collections'
-              ? 'bg-gray-700 text-cyan-400 border-b-2 border-cyan-400'
-              : 'text-gray-400 hover:text-gray-300'
+            activeTab === "collections"
+              ? "bg-gray-700 text-cyan-400 border-b-2 border-cyan-400"
+              : "text-gray-400 hover:text-gray-300"
           }`}
         >
           <Folder size={16} />
           <span>Collections</span>
         </button>
         <button
-          onClick={() => setActiveTab('environments')}
+          onClick={() => setActiveTab("environments")}
           className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center space-x-2 transition-colors ${
-            activeTab === 'environments'
-              ? 'bg-gray-700 text-cyan-400 border-b-2 border-cyan-400'
-              : 'text-gray-400 hover:text-gray-300'
+            activeTab === "environments"
+              ? "bg-gray-700 text-cyan-400 border-b-2 border-cyan-400"
+              : "text-gray-400 hover:text-gray-300"
           }`}
         >
           <Globe size={16} />
           <span>Environments</span>
         </button>
         <button
-          onClick={() => setActiveTab('schedules')}
+          onClick={() => setActiveTab("schedules")}
           className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center space-x-2 transition-colors ${
-            activeTab === 'schedules'
-              ? 'bg-gray-700 text-cyan-400 border-b-2 border-cyan-400'
-              : 'text-gray-400 hover:text-gray-300'
+            activeTab === "schedules"
+              ? "bg-gray-700 text-cyan-400 border-b-2 border-cyan-400"
+              : "text-gray-400 hover:text-gray-300"
           }`}
         >
           <Clock size={16} />
@@ -484,8 +450,8 @@ export function Sidebar() {
       </div>
 
       {/* Collections Tab */}
-      {activeTab === 'collections' && (
-        <div className="flex-1 flex flex-col">
+      {activeTab === "collections" && (
+        <div className="flex-1 flex flex-col h-[calc(100vh-20rem)]">
           {/* Search and Add */}
           <div className="p-4 border-b border-gray-700">
             <div className="relative mb-3">
@@ -526,7 +492,9 @@ export function Sidebar() {
                       expanded={expandedCollections.has(collection._id)}
                       onToggle={() => toggleCollection(collection._id)}
                       onAddRequest={() => setShowNewRequestForm(collection._id)}
-                      onDeleteCollection={() => deleteCollection(collection._id)}
+                      onDeleteCollection={() =>
+                        deleteCollection(collection._id)
+                      }
                       onSelectRequest={setActiveRequest}
                       onDeleteRequest={deleteRequest}
                     />
@@ -539,8 +507,8 @@ export function Sidebar() {
       )}
 
       {/* Environments Tab */}
-      {activeTab === 'environments' && (
-        <div className="flex-1 flex flex-col">
+      {activeTab === "environments" && (
+        <div className="flex-1 flex flex-col h-[calc(100vh-20rem)]">
           <div className="p-4 border-b border-gray-700">
             <button
               onClick={() => setShowNewEnvironmentForm(true)}
@@ -571,8 +539,8 @@ export function Sidebar() {
                           }
                           className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                             environment.isActive
-                              ? 'bg-green-500 border-green-500'
-                              : 'border-gray-500'
+                              ? "bg-green-500 border-green-500"
+                              : "border-gray-500"
                           }`}
                         >
                           {environment.isActive && (
@@ -610,8 +578,8 @@ export function Sidebar() {
       )}
 
       {/* Schedules Tab */}
-      {activeTab === 'schedules' && (
-        <div className="flex-1 flex flex-col">
+      {activeTab === "schedules" && (
+        <div className="flex-1 flex flex-col h-[calc(100vh-20rem)]">
           <div className="p-4 border-b border-gray-700">
             <button
               onClick={() => setShowNewScheduleForm(true)}
@@ -627,18 +595,15 @@ export function Sidebar() {
               {schedules.map((schedule) => {
                 const executions = getScheduleExecutions(schedule.id);
                 const isExpanded = expandedSchedules.has(schedule.id);
-                
+
                 return (
-                  <div
-                    key={schedule.id}
-                    className="bg-gray-700 rounded-lg"
-                  >
+                  <div key={schedule.id} className="bg-gray-700 rounded-lg">
                     <div className="p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <div
                             className={`w-3 h-3 rounded-full ${
-                              schedule.enabled ? 'bg-green-500' : 'bg-gray-500'
+                              schedule.enabled ? "bg-green-500" : "bg-gray-500"
                             }`}
                           />
                           <span className="text-white font-medium">
@@ -681,14 +646,20 @@ export function Sidebar() {
                         <div>{schedule.collections.length} collections</div>
                         {schedule.lastRun && (
                           <div className="flex items-center space-x-1">
-                            {schedule.lastResult === 'success' && (
-                              <CheckCircle size={12} className="text-green-400" />
+                            {schedule.lastResult === "success" && (
+                              <CheckCircle
+                                size={12}
+                                className="text-green-400"
+                              />
                             )}
-                            {schedule.lastResult === 'error' && (
+                            {schedule.lastResult === "error" && (
                               <XCircle size={12} className="text-red-400" />
                             )}
-                            {schedule.lastResult === 'partial' && (
-                              <AlertCircle size={12} className="text-yellow-400" />
+                            {schedule.lastResult === "partial" && (
+                              <AlertCircle
+                                size={12}
+                                className="text-yellow-400"
+                              />
                             )}
                             <span>
                               Last run: {formatRelativeTime(schedule.lastRun)}
@@ -715,14 +686,23 @@ export function Sidebar() {
                             >
                               <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center space-x-2">
-                                  {execution.status === 'success' && (
-                                    <CheckCircle size={12} className="text-green-400" />
+                                  {execution.status === "success" && (
+                                    <CheckCircle
+                                      size={12}
+                                      className="text-green-400"
+                                    />
                                   )}
-                                  {execution.status === 'error' && (
-                                    <XCircle size={12} className="text-red-400" />
+                                  {execution.status === "error" && (
+                                    <XCircle
+                                      size={12}
+                                      className="text-red-400"
+                                    />
                                   )}
-                                  {execution.status === 'partial' && (
-                                    <AlertCircle size={12} className="text-yellow-400" />
+                                  {execution.status === "partial" && (
+                                    <AlertCircle
+                                      size={12}
+                                      className="text-yellow-400"
+                                    />
                                   )}
                                   <span className="text-gray-300">
                                     {formatRelativeTime(execution.startTime)}
@@ -731,13 +711,17 @@ export function Sidebar() {
                                 <div className="flex items-center space-x-2 text-gray-400">
                                   <Timer size={10} />
                                   <span>
-                                    {formatExecutionTime(execution.startTime, execution.endTime)}
+                                    {formatExecutionTime(
+                                      execution.startTime,
+                                      execution.endTime
+                                    )}
                                   </span>
                                 </div>
                               </div>
                               <div className="flex items-center justify-between text-gray-400">
                                 <span>
-                                  {execution.successfulRequests}/{execution.totalRequests} requests
+                                  {execution.successfulRequests}/
+                                  {execution.totalRequests} requests
                                 </span>
                                 <span>
                                   {execution.collections.length} collections
@@ -783,7 +767,10 @@ export function Sidebar() {
                     type="text"
                     value={newCollection.name}
                     onChange={(e) =>
-                      setNewCollection({ ...newCollection, name: e.target.value })
+                      setNewCollection({
+                        ...newCollection,
+                        name: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                     required
@@ -910,9 +897,9 @@ export function Sidebar() {
       {/* Environment Form Modal */}
       {showNewEnvironmentForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-6 w-120 max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-white mb-4">
-              {editingEnvironment ? 'Edit Environment' : 'New Environment'}
+              {editingEnvironment ? "Edit Environment" : "New Environment"}
             </h3>
             <form
               onSubmit={
@@ -960,7 +947,11 @@ export function Sidebar() {
                           type="text"
                           value={variable.key}
                           onChange={(e) =>
-                            updateEnvironmentVariable(index, 'key', e.target.value)
+                            updateEnvironmentVariable(
+                              index,
+                              "key",
+                              e.target.value
+                            )
                           }
                           placeholder="Variable name"
                           className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
@@ -971,7 +962,7 @@ export function Sidebar() {
                           onChange={(e) =>
                             updateEnvironmentVariable(
                               index,
-                              'value',
+                              "value",
                               e.target.value
                             )
                           }
@@ -997,8 +988,8 @@ export function Sidebar() {
                     setShowNewEnvironmentForm(false);
                     setEditingEnvironment(null);
                     setEnvironmentForm({
-                      name: '',
-                      variables: [{ key: '', value: '' }],
+                      name: "",
+                      variables: [{ key: "", value: "" }],
                     });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
@@ -1009,7 +1000,7 @@ export function Sidebar() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
                 >
-                  {editingEnvironment ? 'Update' : 'Create'}
+                  {editingEnvironment ? "Update" : "Create"}
                 </button>
               </div>
             </form>
@@ -1022,7 +1013,7 @@ export function Sidebar() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-white mb-4">
-              {editingSchedule ? 'Edit Schedule' : 'New Schedule'}
+              {editingSchedule ? "Edit Schedule" : "New Schedule"}
             </h3>
             <form
               onSubmit={
@@ -1084,25 +1075,36 @@ export function Sidebar() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setShowCollectionSearch(!showCollectionSearch)}
+                      onClick={() =>
+                        setShowCollectionSearch(!showCollectionSearch)
+                      }
                       className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center space-x-1"
                     >
                       <Search size={12} />
                       <span>Browse Collections</span>
                     </button>
                   </div>
-                  
+
                   {/* Selected Collections */}
                   {scheduleForm.collections.length > 0 && (
                     <div className="mb-3 p-3 bg-gray-700 rounded-lg">
-                      <div className="text-xs text-gray-400 mb-2">Selected Collections:</div>
+                      <div className="text-xs text-gray-400 mb-2">
+                        Selected Collections:
+                      </div>
                       <div className="space-y-1">
                         {getSelectedCollectionNames().map((name, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between text-sm"
+                          >
                             <span className="text-white">{name}</span>
                             <button
                               type="button"
-                              onClick={() => removeCollectionFromSchedule(scheduleForm.collections[index])}
+                              onClick={() =>
+                                removeCollectionFromSchedule(
+                                  scheduleForm.collections[index]
+                                )
+                              }
                               className="text-gray-400 hover:text-red-400"
                             >
                               <X size={14} />
@@ -1125,7 +1127,9 @@ export function Sidebar() {
                           type="text"
                           placeholder="Search collections..."
                           value={collectionSearchQuery}
-                          onChange={(e) => setCollectionSearchQuery(e.target.value)}
+                          onChange={(e) =>
+                            setCollectionSearchQuery(e.target.value)
+                          }
                           className="w-full pl-9 pr-4 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm placeholder-gray-400 focus:outline-none focus:border-cyan-400"
                         />
                       </div>
@@ -1134,27 +1138,38 @@ export function Sidebar() {
                           <div
                             key={collection._id}
                             className="flex items-center justify-between p-2 hover:bg-gray-600 rounded cursor-pointer"
-                            onClick={() => toggleCollectionInSchedule(collection._id)}
+                            onClick={() =>
+                              toggleCollectionInSchedule(collection._id)
+                            }
                           >
                             <div className="flex items-center space-x-2">
                               <input
                                 type="checkbox"
-                                checked={scheduleForm.collections.includes(collection._id)}
-                                onChange={() => toggleCollectionInSchedule(collection._id)}
+                                checked={scheduleForm.collections.includes(
+                                  collection._id
+                                )}
+                                onChange={() =>
+                                  toggleCollectionInSchedule(collection._id)
+                                }
                                 className="w-4 h-4 text-cyan-400 bg-gray-600 border-gray-500 rounded focus:ring-cyan-400"
                               />
                               <div>
-                                <div className="text-sm text-white">{collection.name}</div>
-                                <div className="text-xs text-gray-400">{collection.size} requests</div>
+                                <div className="text-sm text-white">
+                                  {collection.name}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {collection.size} requests
+                                </div>
                               </div>
                             </div>
                           </div>
                         ))}
-                        {collectionSearchResults.length === 0 && collectionSearchQuery && (
-                          <div className="text-center text-gray-400 text-sm py-4">
-                            No collections found
-                          </div>
-                        )}
+                        {collectionSearchResults.length === 0 &&
+                          collectionSearchQuery && (
+                            <div className="text-center text-gray-400 text-sm py-4">
+                              No collections found
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
@@ -1184,14 +1199,14 @@ export function Sidebar() {
                     setShowNewScheduleForm(false);
                     setEditingSchedule(null);
                     setScheduleForm({
-                      name: '',
-                      description: '',
+                      name: "",
+                      description: "",
                       collections: [],
                       interval: 60,
                       enabled: true,
                     });
                     setShowCollectionSearch(false);
-                    setCollectionSearchQuery('');
+                    setCollectionSearchQuery("");
                   }}
                   className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
                 >
@@ -1201,7 +1216,7 @@ export function Sidebar() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
                 >
-                  {editingSchedule ? 'Update' : 'Create'}
+                  {editingSchedule ? "Update" : "Create"}
                 </button>
               </div>
             </form>
@@ -1248,11 +1263,7 @@ function CollectionItem({
       <div className="flex items-center justify-between p-2 hover:bg-gray-700 rounded-lg group">
         <div className="flex items-center space-x-2 flex-1" onClick={onToggle}>
           <button className="text-gray-400 hover:text-gray-300">
-            {expanded ? (
-              <ChevronDown size={16} />
-            ) : (
-              <ChevronRight size={16} />
-            )}
+            {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
           <Folder size={16} className="text-cyan-400" />
           <div className="flex-1">
@@ -1314,15 +1325,15 @@ function CollectionItem({
               <div className="flex items-center space-x-2">
                 <span
                   className={`px-2 py-1 text-xs font-mono rounded ${
-                    request.method === 'GET'
-                      ? 'bg-green-500/20 text-green-400'
-                      : request.method === 'POST'
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : request.method === 'PUT'
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : request.method === 'DELETE'
-                      ? 'bg-red-500/20 text-red-400'
-                      : 'bg-gray-500/20 text-gray-400'
+                    request.method === "GET"
+                      ? "bg-green-500/20 text-green-400"
+                      : request.method === "POST"
+                      ? "bg-blue-500/20 text-blue-400"
+                      : request.method === "PUT"
+                      ? "bg-orange-500/20 text-orange-400"
+                      : request.method === "DELETE"
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-gray-500/20 text-gray-400"
                   }`}
                 >
                   {request.method}
